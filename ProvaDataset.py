@@ -42,7 +42,7 @@ class GoogleImageExtractor(object):
         self.images_url_list = []
 
         #Directory path where you want to store the images.
-        self.directory_path = "/Users/lseijas/Desktop/test/Image"
+        self.directory_path = "/Users/lseijas/Desktop/TFG_Code/Image"
 
     #Specification of the directory path where you want to store the images.
     def setDirectoryPath(self, directory_name):
@@ -199,6 +199,6 @@ if __name__ == '__main__':
     #Download specific amount of images per query (max 250 - at this stage)
     w.setNumberOfImages(800)
     #Specification of the directory path where you want to download the images.
-    w.setDirectoryPath("/Users/lseijas/Desktop/test/Image")
+    w.setDirectoryPath("/Users/lseijas/Desktop/TFG_Code/Image")
     #Search for each query.
     w.multi_search_download()
