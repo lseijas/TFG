@@ -1,4 +1,4 @@
-# ********************************************************************************+
+# ****************************************************************************+****
 # @Author: Laia Seijas
 # @Goal: Download multiple search based on queries and a specific amount of images.
 # @Date: 10/12/2018
@@ -150,13 +150,13 @@ class GoogleImageExtractor(object):
                                 csvwriter = csv.writer(csvfile)
                                 #We define the row depending on the query we are looking at
                                 if query == 'forestfire':
-                                    row = [query + "_image_" + str(i), 'yes', 'yes', 'no']
+                                    row = [query + "_image_" + str(i), 1, 0, 0, 0]
                                 if query == 'buildingfire':
-                                    row = [query + "_image_" + str(i), 'yes', 'no', 'yes']
+                                    row = [query + "_image_" + str(i), 0, 1, 0, 0]
                                 if query == 'forest':
-                                    row = [query + "_image_" + str(i), 'no', 'yes', 'no']
+                                    row = [query + "_image_" + str(i), 0, 0, 1, 0]
                                 if query == 'building':
-                                    row = [query + "_image_" + str(i), 'no', 'no', 'yes']
+                                    row = [query + "_image_" + str(i), 0, 0, 0, 1]
                                 csvwriter.writerow(row)
                         except Exception as e:
                             print ("Exception al escriure al fitxer ")
@@ -187,17 +187,17 @@ class GoogleImageExtractor(object):
 
 if __name__ == '__main__':
     #Make a CSV file that includes the name of the image an other properties 
-    fields = ['Name', 'url', 'Fire', 'Forest', 'City']
+    fields = ['Name', 'FireForest', 'FireCity', 'Forest', 'City']
     filename = 'data.csv'
     with open(filename, 'w') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(fields)  
     #Queries that you want to search for:
-    queries_list = ["forest+fire","building+fire","forest","building"]
+    queries_list = ["forestfire","buildingfire","forest","building"]
     #Instantiation of the google class.
     w = GoogleImageExtractor(queries_list)
     #Download specific amount of images per query (max 250 - at this stage)
-    w.setNumberOfImages(800)
+    w.setNumberOfImages(20)
     #Specification of the directory path where you want to download the images.
     w.setDirectoryPath("/Users/lseijas/Desktop/TFG_Code/Image")
     #Search for each query.
