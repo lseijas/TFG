@@ -16,6 +16,7 @@ from keras import regularizers
 from keras.callbacks import LearningRateScheduler
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 
+#Hola
 def get_labelsID():
 	labels = []
 	with open('data.csv', 'r') as csv_file:
