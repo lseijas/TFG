@@ -1,4 +1,4 @@
-# ****************************************************************************+****
+# ********************************************************************************+
 # @Author: Laia Seijas
 # @Goal: Download multiple search based on queries and a specific amount of images.
 # @Date: 10/12/2018
@@ -201,4 +201,5 @@ if __name__ == '__main__':
     #Specification of the directory path where you want to download the images.
     w.setDirectoryPath("/Users/lseijas/Desktop/TFG_Code/Image")
     #Search for each query.
+    w.multi_search_download()
     w.multi_search_download()
