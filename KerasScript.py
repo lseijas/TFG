@@ -16,8 +16,7 @@ from keras import regularizers
 from keras.callbacks import LearningRateScheduler
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 
-#Hola
-def get_labelsID():
+def get_labelsID(loaded):
 	labels = []
 	with open('data.csv', 'r') as csv_file:
 	    csv_reader = csv.reader(csv_file, delimiter=',')
@@ -26,17 +25,19 @@ def get_labelsID():
         	if line_count == 0:
         		line_count = 1
 	        else:
-	            #Llegim les columnes que ens proporcionen la informacio sobre el resultat de la imatge
-	            x = np.array([row[1], row[2], row[3], row[4]])
-	            x = x.astype('float32')
-	            #Afegim la etiqueta de la imatge al array d'etiquetes.
-	            labels.append(x)
+	        	if (line_count - 1) < len(loaded):
+		        	if loaded[line_count - 1] == "Yes":
+		        		x = np.array([row[1], row[2], row[3], row[4]])
+		        		x = x.astype('float32')
+		        		labels.append(x)
+			        line_count = line_count + 1
 	return labels
 
 def loadImages(path):
 	# return array of images
 	imagesList = listdir(path)
 	loadedImages = []
+	loaded = []
 	for image in imagesList:
 		try:
 			if (path + image) == path + '.DS_Store':
@@ -49,16 +50,20 @@ def loadImages(path):
 				img_resize = cv.resize(x, (32,32))
 				#Normalitzem les imatges de 0 a 255
 				img_norm = cv.normalize(img_resize, None, 0, 255, cv.NORM_MINMAX)
-				#Normalize inputs from 0-255 to 0.0-1.0
-				#img_norm = img_norm.astype('float32')
-				#img_norm = img_norm / 255.0
+
 				loadedImages.append(img_norm)
+				state = "Yes"
+			else:
+				state = "No"
+			loaded.append(state)
 		except ValueError:
 			print ("Exception carregar la imatge")
-	return loadedImages
+	return loadedImages, loaded
 
 def dataSeparation(data, labels, train = 0.8):
 	#Shuffle data tant de la informació com de les etiquetes
+	print(data.shape)
+	print(labels.shape)
 	data, labels = shuffle(data, labels, random_state = 0)
 
 	#Agafem un 80% d'imatges de la carpeta data, en concret, el 80% de les primeres imatges
@@ -124,12 +129,11 @@ if __name__ == '__main__':
 	path = "/Users/lseijas/Desktop/TFG_Code/Image/Dataset/"
 
 	# Datasets
-	labels = get_labelsID()
-	labels = np.asarray(labels)
-	data = loadImages(path)
+
+	data, loaded = loadImages(path)
 	data = np.asarray(data)
-
-
+	labels = get_labelsID(loaded)
+	labels = np.asarray(labels)
 
 	X_test, X_train, Y_test, Y_train = dataSeparation(data, labels)
 
@@ -150,6 +154,7 @@ if __name__ == '__main__':
 	    horizontal_flip=True,
 	    )
 	datagen.fit(X_train)
+
 	model = arquitectureModel(X_train)
 
 	early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
