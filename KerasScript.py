@@ -135,6 +135,8 @@ if __name__ == '__main__':
 
 	mean = np.mean(X_train,axis=(0,1,2,3))
 	std = np.std(X_train,axis=(0,1,2,3))
+	#Apliquem la Z-score normalization aixi aconseguim "linearly transformed 
+	#data values having a mean of zero and a standard deviation of 1"
 	X_train = (X_train-mean)/(std+1e-7)
 	X_test = (X_test-mean)/(std+1e-7)
 
