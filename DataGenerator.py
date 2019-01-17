@@ -1,3 +1,8 @@
+# ********************************************************************************+
+# @Author: Laia Seijas
+# @Goal: Apply DataGenerator in some of the images.
+# @Date: 10/12/2018
+# *********************************************************************************
 import numpy as np
 import keras
 import csv

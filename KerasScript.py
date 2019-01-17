@@ -1,3 +1,8 @@
+# ********************************************************************************+
+# @Author: Laia Seijas
+# @Goal: Classify images.
+# @Date: 31/12/2018
+# *********************************************************************************
 import numpy as np
 import cv2 as cv
 from keras.models import Sequential
@@ -15,6 +20,8 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras import regularizers
 from keras.callbacks import LearningRateScheduler
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+import os
+from matplotlib import pyplot
 
 def get_labelsID(loaded):
 	labels = []
@@ -88,7 +95,22 @@ def dataValidation(X_train, Y_train, val = 0.2):
 
 	return X_val, Y_val, X_train, Y_train 
 
-def arquitectureModel(x_train, num_classes = 4):
+def showAndSave(X_train, Y_train):
+	# configure batch size and retrieve one batch of images
+	os.makedirs('images', exist_ok=True)
+	for X_batch, Y_batch in datagen.flow(X_train, Y_train, batch_size=9, save_to_dir='images', save_prefix='aug', save_format='png'):
+		# create a grid of 3x3 images
+		print(X_batch.shape)
+		print(Y_batch.shape)
+		for i in range(0, 9):
+			print (Y_batch[i])
+			pyplot.subplot(330 + 1 + i)
+			pyplot.imshow(X_batch[i], cmap=pyplot.get_cmap('gray'))
+		# show the plot
+		pyplot.show()
+		break
+
+"""def arquitectureModel(x_train, num_classes = 4):
 	weight_decay = 1e-4
 	model = Sequential()
 	model.add(Conv2D(32, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay), input_shape=x_train.shape[1:]))
@@ -123,7 +145,7 @@ def arquitectureModel(x_train, num_classes = 4):
 	 
 	model.summary()
 
-	return model
+	return model"""
 
 if __name__ == '__main__':
 	path = "/Users/lseijas/Desktop/TFG_Code/Image/Dataset/"
@@ -155,7 +177,11 @@ if __name__ == '__main__':
 	    )
 	datagen.fit(X_train)
 
-	model = arquitectureModel(X_train)
+	showAndSave(X_train, Y_train)
+
+
+
+	"""model = arquitectureModel(X_train)
 
 	early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
 	lr_schedule = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, verbose=1, mode='auto', min_lr=10e-7)
@@ -171,4 +197,4 @@ if __name__ == '__main__':
 	
 	#testing
 	scores = model.evaluate(X_test, Y_test, batch_size=128, verbose=1)
-	print('\nTest result: %.3f loss: %.3f' % (scores[1]*100,scores[0]))
+	print('\nTest result: %.3f loss: %.3f' % (scores[1]*100,scores[0]))"""
