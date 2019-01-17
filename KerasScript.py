@@ -18,13 +18,41 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization
 from keras.layers import Conv2D, MaxPooling2D
 from keras import regularizers
+from pickle import load
+from keras.models import load_model
 from keras.callbacks import LearningRateScheduler
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 import os
 from matplotlib import pyplot
+import matplotlib.pyplot as plt
 
-def get_labelsID(loaded):
-	labels = []
+#Funcion para muestrear la accuracy y la loss del modelo
+def showGraphics(history): 
+	# summarize history for accuracy
+	plt.plot(history.history['acc'])
+	plt.plot(history.history['val_acc'])
+	plt.title('model accuracy')
+	plt.ylabel('accuracy')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'val'], loc='upper left')
+	plt.show()
+	# summarize history for loss
+	plt.plot(history.history['loss'])
+	plt.plot(history.history['val_loss'])
+	plt.title('model loss')
+	plt.ylabel('loss')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'val'], loc='upper left')
+	plt.show()
+
+	plt.plot(history.history['lr'])
+	plt.title('model lr')
+	plt.ylabel('lr')
+	plt.xlabel('epoch')
+	plt.legend(['lr'], loc='upper left')
+	plt.show()
+
+def get_label(image):
 	with open('data.csv', 'r') as csv_file:
 	    csv_reader = csv.reader(csv_file, delimiter=',')
 	    line_count = 0
@@ -32,40 +60,45 @@ def get_labelsID(loaded):
         	if line_count == 0:
         		line_count = 1
 	        else:
-	        	if (line_count - 1) < len(loaded):
-		        	if loaded[line_count - 1] == "Yes":
-		        		x = np.array([row[1], row[2], row[3], row[4]])
-		        		x = x.astype('float32')
-		        		labels.append(x)
-			        line_count = line_count + 1
-	return labels
+	        	#print("row:"+ str(row[0]))
+	        	if row[0] == image:
+		        	x = np.array([row[1], row[2], row[3], row[4]])
+		        	x = x.astype('float32')
+		        	return x
+		        line_count = line_count + 1
+	y = np.array([0, 0, 0, 0])
+	y = y.astype('float32')
+	return y
 
 def loadImages(path):
 	# return array of images
 	imagesList = listdir(path)
 	loadedImages = []
-	loaded = []
+	labels = []
 	for image in imagesList:
 		try:
 			if (path + image) == path + '.DS_Store':
 				continue
-			img = PImage.open(path + image)
-			x = np.asarray(img)
-			#Descartem les imatges que son en blanc i negre
-			if x.shape[-1] == 3:
-				#Escalem la imatge a 32x32x3
-				img_resize = cv.resize(x, (32,32))
-				#Normalitzem les imatges de 0 a 255
-				img_norm = cv.normalize(img_resize, None, 0, 255, cv.NORM_MINMAX)
-
-				loadedImages.append(img_norm)
-				state = "Yes"
-			else:
-				state = "No"
-			loaded.append(state)
+			try:	
+				img = PImage.open(path + image)
+				x = np.asarray(img)
+				#Descartem les imatges que son en blanc i negre
+				if x.shape[-1] == 3:
+					im, ext = image.split(".")
+					print (im)
+					label = get_label(im)
+					print(label)
+					labels.append(label)
+					#Escalem la imatge a 32x32x3
+					img_resize = cv.resize(x, (32,32))
+					#Normalitzem les imatges de 0 a 255
+					img_norm = cv.normalize(img_resize, None, 0, 255, cv.NORM_MINMAX)
+					loadedImages.append(img_norm)
+			except OSError:
+				print ("Exception al obrir la imatge")
 		except ValueError:
 			print ("Exception carregar la imatge")
-	return loadedImages, loaded
+	return loadedImages, labels
 
 def dataSeparation(data, labels, train = 0.8):
 	#Shuffle data tant de la informació com de les etiquetes
@@ -110,7 +143,7 @@ def showAndSave(X_train, Y_train):
 		pyplot.show()
 		break
 
-"""def arquitectureModel(x_train, num_classes = 4):
+def arquitectureModel(x_train, num_classes = 4):
 	weight_decay = 1e-4
 	model = Sequential()
 	model.add(Conv2D(32, (3,3), padding='same', kernel_regularizer=regularizers.l2(weight_decay), input_shape=x_train.shape[1:]))
@@ -145,16 +178,16 @@ def showAndSave(X_train, Y_train):
 	 
 	model.summary()
 
-	return model"""
+	return model
 
 if __name__ == '__main__':
 	path = "/Users/lseijas/Desktop/TFG_Code/Image/Dataset/"
 
 	# Datasets
 
-	data, loaded = loadImages(path)
+	data, labels = loadImages(path)
+	#labels = get_labelsID(loaded, data)
 	data = np.asarray(data)
-	labels = get_labelsID(loaded)
 	labels = np.asarray(labels)
 
 	X_test, X_train, Y_test, Y_train = dataSeparation(data, labels)
@@ -177,24 +210,27 @@ if __name__ == '__main__':
 	    )
 	datagen.fit(X_train)
 
-	showAndSave(X_train, Y_train)
+	#showAndSave(X_train, Y_train)
 
-
-
-	"""model = arquitectureModel(X_train)
+	model = arquitectureModel(X_train)
 
 	early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
 	lr_schedule = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, verbose=1, mode='auto', min_lr=10e-7)
-	callback_list = [early_stopping, lr_schedule]
+	#callback_list = [early_stopping, lr_schedule]
+	callback_list = [lr_schedule]
 
 	opt_rms = keras.optimizers.rmsprop(lr=0.001,decay=1e-6)
 	model.compile(loss='categorical_crossentropy', optimizer=opt_rms, metrics=['accuracy'])
-	model.fit_generator(datagen.flow(X_train, Y_train, batch_size=32),\
-	                    steps_per_epoch=X_train.shape[0] // 32,epochs=125,\
+	history = model.fit_generator(datagen.flow(X_train, Y_train, batch_size=32),\
+	                    steps_per_epoch=X_train.shape[0] // 32,epochs=120,\
 	                    verbose=1,validation_data=(X_val,Y_val),callbacks=callback_list)
+	
 	#save to disk
-	model.save_weights('model.h5') 
+	model.save_weights('model.h5')
+	# list all data in history
+	print(history.history.keys())
+	showGraphics(history) 
 	
 	#testing
 	scores = model.evaluate(X_test, Y_test, batch_size=128, verbose=1)
-	print('\nTest result: %.3f loss: %.3f' % (scores[1]*100,scores[0]))"""
+	print('\nTest result: %.3f loss: %.3f' % (scores[1]*100,scores[0]))
