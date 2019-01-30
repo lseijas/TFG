@@ -12,6 +12,7 @@ from PIL import Image as PImage
 from DataGenerator import DataGenerator
 from sklearn.utils import shuffle
 from sklearn.preprocessing import scale
+from sklearn.metrics import classification_report
 import keras
 from keras.utils import np_utils
 from keras.preprocessing.image import ImageDataGenerator
@@ -25,9 +26,66 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 import os
 from matplotlib import pyplot
 import matplotlib.pyplot as plt
+import numpy.ma as ma
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+def descompressOutput():
+	container = np.load('data.npz')
+	data = [container[key] for key in container]
+	container = np.load('labels.npz')
+	labels = [container[key] for key in container]
+	print (data)
+	print (labels)
+	return data, labels
+
+def compressOutput(data, labels):
+	np.savez('data.npz', *data)
+	np.savez('labels.npz', *labels)
+
+def make_mosaic(imgs, nrows, ncols, border=1):
+	nimgs = imgs.shape[0]
+	imshape = imgs.shape[1:]
+	mosaic = ma.masked_all((nrows * imshape[0] + (nrows - 1) * border, ncols * imshape[1] + (ncols - 1) * border), dtype=np.float32)
+	paddedh = imshape[0] + border
+	paddedw = imshape[1] + border
+	for i in range(0, nimgs):
+		row = int(np.floor(i / ncols))
+		col = i % ncols
+		mosaic[row * paddedh:row * paddedh + imshape[0], col * paddedw:col * paddedw + imshape[1]] = imgs[i]
+	return mosaic
+
+def nice_imshow(ax, data, vmin=None, vmax=None, cmap=None):
+	"""Wrapper around pl.imshow"""
+	if cmap is None:
+	    cmap = cm.jet
+	if vmin is None:
+	    vmin = data.min()
+	if vmax is None:
+	    vmax = data.max()
+	divider = make_axes_locatable(ax)
+	cax = divider.append_axes("right", size="5%", pad=0.05)
+	im = ax.imshow(data, vmin=vmin, vmax=vmax, interpolation='nearest', cmap=cmap)
+	plt.colorbar(im, cax=cax)
+	#plt.imshow(make_mosaic(np.random.random((9, 10, 10)), 3, 3, border=1))
+	
+def displayWeights(model, layer):
+	# Visualize weights 
+	W = model.layers[layer].get_weights()[0]
+	W = np.squeeze(W)
+	if len(W.shape) == 4:
+		W = W.reshape((-1,W.shape[2],W.shape[3]))
+	print("W shape : ", W.shape)
+	plt.figure(figsize=(15, 15))
+	plt.title('conv weights')
+	s = int(np.sqrt(W.shape[0])+1)
+	nice_imshow(plt.gca(), make_mosaic(W, s, s), cmap=plt.cm.binary)
+	plt.show()
 
 #Funcion para muestrear la accuracy y la loss del modelo
 def showGraphics(history): 
+
+	# list all data in history
+	print(history.history.keys())
 	# summarize history for accuracy
 	plt.plot(history.history['acc'])
 	plt.plot(history.history['val_acc'])
@@ -66,6 +124,7 @@ def get_label(image):
 		        	x = x.astype('float32')
 		        	return x
 		        line_count = line_count + 1
+	print("Label not found")
 	y = np.array([0, 0, 0, 0])
 	y = y.astype('float32')
 	return y
@@ -184,9 +243,9 @@ if __name__ == '__main__':
 	path = "/Users/lseijas/Desktop/TFG_Code/Image/Dataset/"
 
 	# Datasets
-
+	#data, labels = descompressOutput()
+	
 	data, labels = loadImages(path)
-	#labels = get_labelsID(loaded, data)
 	data = np.asarray(data)
 	labels = np.asarray(labels)
 
@@ -201,8 +260,13 @@ if __name__ == '__main__':
 
 	X_val, Y_val, X_train, Y_train = dataValidation(X_train, Y_train)
 
+	#compressOutput(data, labels)
+
+	X_train2 = DataGenerator(X_train, Y_train)
+	
+
 	#data augmentation
-	datagen = ImageDataGenerator(
+	"""datagen = ImageDataGenerator(
 	    rotation_range=15,
 	    width_shift_range=0.1,
 	    height_shift_range=0.1,
@@ -220,17 +284,30 @@ if __name__ == '__main__':
 	callback_list = [lr_schedule]
 
 	opt_rms = keras.optimizers.rmsprop(lr=0.001,decay=1e-6)
+
 	model.compile(loss='categorical_crossentropy', optimizer=opt_rms, metrics=['accuracy'])
+	
 	history = model.fit_generator(datagen.flow(X_train, Y_train, batch_size=32),\
 	                    steps_per_epoch=X_train.shape[0] // 32,epochs=120,\
 	                    verbose=1,validation_data=(X_val,Y_val),callbacks=callback_list)
-	
+
+	displayWeights(model, 0)
+
 	#save to disk
-	model.save_weights('model.h5')
-	# list all data in history
-	print(history.history.keys())
-	showGraphics(history) 
+	#model.save_weights('model.h5')
+	
+	#show graphics: the accuracy, loss and learning rate
+	#showGraphics(history)
 	
 	#testing
 	scores = model.evaluate(X_test, Y_test, batch_size=128, verbose=1)
-	print('\nTest result: %.3f loss: %.3f' % (scores[1]*100,scores[0]))
+	print('\nTest result:\n accuracy: %.3f loss: %.3f\n' % (scores[1]*100,scores[0]))
+
+	Y_pred = model.predict(X_test)
+	# Convert predictions classes to one hot vectors 
+	Y_pred_classes = np.argmax(Y_pred,axis = 1) 
+	# Convert validation observations to one hot vectors
+	Y_true = np.argmax(Y_test,axis = 1) 
+	target_names = ['Incendi Forestal', 'Incendi Ciutat', 'Bosc', 'Edifici']
+	print(classification_report(Y_true, Y_pred_classes, target_names=target_names))"""
+
