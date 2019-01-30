@@ -8,13 +8,15 @@ import keras
 import csv
 import imgaug as ia
 from imgaug import augmenters as iaa
+from skimage.io import imread
+from skimage.transform import resize
 
 
 #New class generator for dataset A
 class DataGenerator(keras.utils.Sequence):
   #We have 4 classes (forest fire, forest, city fire, city)
-  def __init__(self, list_IDs, labels, batch_size, n_channels,
-               n_classes):
+  def __init__(self, list_IDs, labels, batch_size = 32, n_channels = 3,
+               n_classes = 4):
       'Initialization'
       ia.seed(1)
       # Podriem afegir el self.mean i self.std
@@ -27,10 +29,8 @@ class DataGenerator(keras.utils.Sequence):
       self.shuffle = True
       #Ens barreja les mostres o no en funcio del paramtre shuffle 
       self.on_epoch_end()
-      print("He sortit del epoch end")
       #Posant 0.3 en contes de 0.5 fem mes debils els canvis aplicats
       self.sometimes = lambda aug: iaa.Sometimes(0.3, aug)
-      print("He fixat la lambda del sometimes")
       self.seq = iaa.Sequential(
         [
           #Horizontally flip 50% of all images
@@ -159,26 +159,20 @@ class DataGenerator(keras.utils.Sequence):
         #Do all of the above augmentations in random order
         random_order = True
       )
-      print("He sortit del sequential")
+      print("shape en el DG: " + str(list_IDs.shape))
 
   #Ens dons el numero de un batch
   def __len__(self):
-    'Denotes the number of batches per epoch'
+    #Denotes the number of batches per epoch
     return int(np.floor(len(self.list_IDs) / self.batch_size))
 
   #Funcio que s'executa per generar el batch que correspon al numero que hem obtingut de la funcio anterior
   def __getitem__(self, index):
-    'Generate one batch of data'
-    print("Index: " + str(index))
-    print("Batch: " + str(self.batch_size))
-    print("Self.ids shape: "+ str(self.list_IDs.shape))
     # Generate indexes of the batch
     indexes = self.list_IDs[index*self.batch_size:(index+1)*self.batch_size]
-    print("Indexes: " + str(indexes))
+    index = np.array(indexes).astype(int)  
     # Find list of IDs
-    list_IDs_temp = [self.list_IDs[k] for k in indexes]
-    print("List elements: " + str(list_IDs_temp))
-    
+    list_IDs_temp = [self.list_IDs[k] for k in index]
     # Generate data
     X, y = self.__data_generation(list_IDs_temp)
 
@@ -187,26 +181,38 @@ class DataGenerator(keras.utils.Sequence):
   #Aquesta funció ens permet canviar l'ordre d'exploració així els batches entre les epochs no s'assemblaran
   #Fer això eventualment farà que el nostre model sigui més robust
   def on_epoch_end(self):
-    'Updates indexes after each epoch'
+    #Updates indexes after each epoch
     self.indexes = np.arange(len(self.list_IDs))
     #Nomes es realitzara el shuffle si el parametre shuffle esta a true
     if self.shuffle == True:
         np.random.shuffle(self.indexes)
 
+  def read_and_resize(self, filepath):
+    img = filepath
+    return np.expand_dims(img, 0)
+  
   # Aquesta funció rep una llista amb els ID dels target dels batch
   def __data_generation(self, list_IDs_temp):
-    'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+    #Generates data containing batch_size samples # X : (n_samples, *dim, n_channels)
+    # Generate data
+    """for i, ID in enumerate(list_IDs_temp):
+        # Store sample
+        np.save('data/' + ID + '.npy', list_IDs_temp[i])
+        # Store class
+        y[i] = np.array(self.labels[ID]).astype(int)
+    #Aquesta funcio converteix les nostres etiquetes numeriques guardades a 'y' a una forma binaria
+    y = np.array(self.labels).astype(int)
+    print(list_IDs_temp)
+    X = np.array(list_IDs_temp, dtype=float)"""
     # Initialization
     X = np.empty((self.batch_size, *self.dim, self.n_channels))
     y = np.empty((self.batch_size), dtype=int)
-
-    # Generate data
-    for i, ID in enumerate(list_IDs_temp):
-        # Store sample
-        X[i,] = np.load('data/' + ID + '.npy')
-
-        # Store class
-        y[i] = self.labels[ID]
-    #Aquesta funcio converteix les nostres etiquetes numeriques guardades a 'y' a una forma binaria
+    
+    X = [self.read_and_resize(self.list_IDs[i])
+         for i in range(0, len(list_IDs_temp))]
+    y = self.labels[:len(list_IDs_temp)]
+    X = np.vstack(X)
+    
+    #return X, y
     return X, keras.utils.to_categorical(y, num_classes=self.n_classes)
 
