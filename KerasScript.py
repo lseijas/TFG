@@ -266,7 +266,7 @@ if __name__ == '__main__':
 	
 
 	#data augmentation
-	"""datagen = ImageDataGenerator(
+	datagen = ImageDataGenerator(
 	    rotation_range=15,
 	    width_shift_range=0.1,
 	    height_shift_range=0.1,
@@ -297,7 +297,7 @@ if __name__ == '__main__':
 	#model.save_weights('model.h5')
 	
 	#show graphics: the accuracy, loss and learning rate
-	#showGraphics(history)
+	showGraphics(history)
 	
 	#testing
 	scores = model.evaluate(X_test, Y_test, batch_size=128, verbose=1)
@@ -309,5 +309,5 @@ if __name__ == '__main__':
 	# Convert validation observations to one hot vectors
 	Y_true = np.argmax(Y_test,axis = 1) 
 	target_names = ['Incendi Forestal', 'Incendi Ciutat', 'Bosc', 'Edifici']
-	print(classification_report(Y_true, Y_pred_classes, target_names=target_names))"""
+	print(classification_report(Y_true, Y_pred_classes, target_names=target_names))
 
